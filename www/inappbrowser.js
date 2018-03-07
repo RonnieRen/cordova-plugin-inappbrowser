@@ -47,13 +47,13 @@
             }
         },
         close: function (eventname) {
-            exec(null, null, 'InAppBrowser', 'close', []);
+            exec(null, null, 'InAppBrowserWithHeader', 'close', []);
         },
         show: function (eventname) {
-            exec(null, null, 'InAppBrowser', 'show', []);
+            exec(null, null, 'InAppBrowserWithHeader', 'show', []);
         },
         hide: function (eventname) {
-            exec(null, null, 'InAppBrowser', 'hide', []);
+            exec(null, null, 'InAppBrowserWithHeader', 'hide', []);
         },
         addEventListener: function (eventname, f) {
             if (eventname in this.channels) {
@@ -68,9 +68,9 @@
 
         executeScript: function (injectDetails, cb) {
             if (injectDetails.code) {
-                exec(cb, null, 'InAppBrowser', 'injectScriptCode', [injectDetails.code, !!cb]);
+                exec(cb, null, 'InAppBrowserWithHeader', 'injectScriptCode', [injectDetails.code, !!cb]);
             } else if (injectDetails.file) {
-                exec(cb, null, 'InAppBrowser', 'injectScriptFile', [injectDetails.file, !!cb]);
+                exec(cb, null, 'InAppBrowserWithHeader', 'injectScriptFile', [injectDetails.file, !!cb]);
             } else {
                 throw new Error('executeScript requires exactly one of code or file to be specified');
             }
@@ -78,9 +78,9 @@
 
         insertCSS: function (injectDetails, cb) {
             if (injectDetails.code) {
-                exec(cb, null, 'InAppBrowser', 'injectStyleCode', [injectDetails.code, !!cb]);
+                exec(cb, null, 'InAppBrowserWithHeader', 'injectStyleCode', [injectDetails.code, !!cb]);
             } else if (injectDetails.file) {
-                exec(cb, null, 'InAppBrowser', 'injectStyleFile', [injectDetails.file, !!cb]);
+                exec(cb, null, 'InAppBrowserWithHeader', 'injectStyleFile', [injectDetails.file, !!cb]);
             } else {
                 throw new Error('insertCSS requires exactly one of code or file to be specified');
             }
@@ -108,7 +108,7 @@
 
         strWindowFeatures = strWindowFeatures || '';
 
-        exec(cb, cb, 'InAppBrowser', 'open', [strUrl, strWindowName, strWindowFeatures, headers || ""]);
+        exec(cb, cb, 'InAppBrowserWithHeader', 'open', [strUrl, strWindowName, strWindowFeatures, headers || ""]);
         return iab;
     };
 })();
