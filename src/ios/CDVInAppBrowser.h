@@ -67,9 +67,11 @@
 @property (nonatomic, assign) BOOL suppressesincrementalrendering;
 @property (nonatomic, assign) BOOL hidden;
 @property (nonatomic, assign) BOOL disallowoverscroll;
+@property (nonatomic) NSDictionary* headers;
+
 
 + (CDVInAppBrowserOptions*)parseOptions:(NSString*)options;
-
++ (NSDictionary*)parseStringOptions:(NSString*)options;
 @end
 
 @interface CDVInAppBrowserViewController : UIViewController <UIWebViewDelegate, CDVScreenOrientationDelegate>{
@@ -100,7 +102,7 @@
 @property (nonatomic) NSURL* currentURL;
 
 - (void)close;
-- (void)navigateTo:(NSURL*)url;
+- (void)navigateTo:(NSURL*)url withHeaders: (NSDictionary*)headers;
 - (void)showLocationBar:(BOOL)show;
 - (void)showToolBar:(BOOL)show : (NSString *) toolbarPosition;
 - (void)setCloseButtonTitle:(NSString*)title : (NSString*) colorString;

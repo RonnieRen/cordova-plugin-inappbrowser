@@ -84,6 +84,9 @@
     NSString* url = [command argumentAtIndex:0];
     NSString* target = [command argumentAtIndex:1 withDefault:kInAppBrowserTargetSelf];
     NSString* options = [command argumentAtIndex:2 withDefault:@"" andClass:[NSString class]];
+    NSString* headerString = [command argumentAtIndex:3 withDefault:@""];
+    
+    
 
     self.callbackId = command.callbackId;
 
@@ -98,13 +101,13 @@
         if ([self isSystemUrl:absoluteUrl]) {
             target = kInAppBrowserTargetSystem;
         }
-
+        NSDictionary* headers = [CDVInAppBrowserOptions parseStringOptions:headerString];
         if ([target isEqualToString:kInAppBrowserTargetSelf]) {
-            [self openInCordovaWebView:absoluteUrl withOptions:options];
+            [self openInCordovaWebView:absoluteUrl withOptions:options withHeaders:headers];
         } else if ([target isEqualToString:kInAppBrowserTargetSystem]) {
             [self openInSystem:absoluteUrl];
         } else { // _blank or anything else
-            [self openInInAppBrowser:absoluteUrl withOptions:options];
+            [self openInInAppBrowser:absoluteUrl withOptions:options withHeaders:headers];
         }
 
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -116,10 +119,11 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)openInInAppBrowser:(NSURL*)url withOptions:(NSString*)options
+- (void)openInInAppBrowser:(NSURL*)url withOptions:(NSString*)options withHeaders: (NSDictionary*)headers
 {
     CDVInAppBrowserOptions* browserOptions = [CDVInAppBrowserOptions parseOptions:options];
 
+    
     if (browserOptions.clearcache) {
         NSHTTPCookie *cookie;
         NSHTTPCookieStorage *storage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
@@ -209,7 +213,7 @@
         self.inAppBrowserViewController.webView.suppressesIncrementalRendering = browserOptions.suppressesincrementalrendering;
     }
 
-    [self.inAppBrowserViewController navigateTo:url];
+    [self.inAppBrowserViewController navigateTo:url withHeaders: headers];
     if (!browserOptions.hidden) {
         [self show:nil];
     }
@@ -275,10 +279,14 @@
     });
 }
 
-- (void)openInCordovaWebView:(NSURL*)url withOptions:(NSString*)options
+- (void)openInCordovaWebView:(NSURL*)url withOptions:(NSString*)options withHeaders: (NSDictionary*)headers
 {
-    NSURLRequest* request = [NSURLRequest requestWithURL:url];
-
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url];
+    if(headers){
+        [headers enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+            [request setValue:obj forHTTPHeaderField:key];
+        }];
+    }
 #ifdef __CORDOVA_4_0_0
     // the webview engine itself will filter for this according to <allow-navigation> policy
     // in config.xml for cordova-ios-4.0
@@ -287,7 +295,7 @@
     if ([self.commandDelegate URLIsWhitelisted:url]) {
         [self.webView loadRequest:request];
     } else { // this assumes the InAppBrowser can be excepted from the white-list
-        [self openInInAppBrowser:url withOptions:options];
+        [self openInInAppBrowser:url withOptions:options withHeaders: headerString];
     }
 #endif
 }
@@ -837,10 +845,18 @@
     });
 }
 
-- (void)navigateTo:(NSURL*)url
+- (void)navigateTo:(NSURL*)url withHeaders:(NSDictionary *)headers
 {
-    NSURLRequest* request = [NSURLRequest requestWithURL:url];
-
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url];
+    
+    if(headers && headers.count > 0) {
+        [headers enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+            if(obj) {
+                [request setValue:obj forHTTPHeaderField:key];
+            }
+        }];
+    }
+    
     if (_userAgentLockToken != 0) {
         [self.webView loadRequest:request];
     } else {
@@ -1032,40 +1048,49 @@
 + (CDVInAppBrowserOptions*)parseOptions:(NSString*)options
 {
     CDVInAppBrowserOptions* obj = [[CDVInAppBrowserOptions alloc] init];
+    
+    NSDictionary* optionsDataDic = [CDVInAppBrowserOptions parseStringOptions:options];
+    [optionsDataDic enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, id  _Nonnull value, BOOL * _Nonnull stop) {
+        if([obj respondsToSelector:NSSelectorFromString(key)]) {
+            [obj setValue:value forKey:key];
+        }
+    }];
+    return obj;
+}
 
++ (NSDictionary*)parseStringOptions:(NSString*)options
+{
+    NSMutableDictionary* keyValues = [NSMutableDictionary new];
+    
     // NOTE: this parsing does not handle quotes within values
     NSArray* pairs = [options componentsSeparatedByString:@","];
-
+    
     // parse keys and values, set the properties
     for (NSString* pair in pairs) {
         NSArray* keyvalue = [pair componentsSeparatedByString:@"="];
-
+        
         if ([keyvalue count] == 2) {
             NSString* key = [[keyvalue objectAtIndex:0] lowercaseString];
             NSString* value = [keyvalue objectAtIndex:1];
             NSString* value_lc = [value lowercaseString];
-
+            
             BOOL isBoolean = [value_lc isEqualToString:@"yes"] || [value_lc isEqualToString:@"no"];
             NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
             [numberFormatter setAllowsFloats:YES];
             BOOL isNumber = [numberFormatter numberFromString:value_lc] != nil;
-
-            // set the property according to the key name
-            if ([obj respondsToSelector:NSSelectorFromString(key)]) {
-                if (isNumber) {
-                    [obj setValue:[numberFormatter numberFromString:value_lc] forKey:key];
-                } else if (isBoolean) {
-                    [obj setValue:[NSNumber numberWithBool:[value_lc isEqualToString:@"yes"]] forKey:key];
-                } else {
-                    [obj setValue:value forKey:key];
-                }
+            
+            if (isNumber) {
+                [keyValues setValue:[numberFormatter numberFromString:value_lc] forKey:key];
+            } else if (isBoolean) {
+                [keyValues setValue:[NSNumber numberWithBool:[value_lc isEqualToString:@"yes"]] forKey:key];
+            } else {
+                [keyValues setValue:value forKey:key];
             }
         }
     }
-
-    return obj;
+    
+    return keyValues;
 }
-
 @end
 
 @implementation CDVInAppBrowserNavigationController : UINavigationController
