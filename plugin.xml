@@ -19,8 +19,7 @@
 -->
 
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-           id="cordova-plugin-inappbrowserwithheader"
-      version="2.0.3-dev">
+           id="cordova-plugin-inappbrowserwithheader">
 
     <name>InAppBrowserWithHeader</name>
     <description>Cordova InAppBrowserWithHeader Plugin</description>
@@ -45,9 +44,9 @@
             </feature>
         </config-file>
 
-        <source-file src="src/android/InAppBrowser.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/cordova/inappbrowser" />
-        <source-file src="src/android/InAppChromeClient.java" target-dir="src/org/apache/cordova/inappbrowser" />
+        <source-file src="src/android/InAppBrowser.java" target-dir="src/org/apache/cordova/inappbrowserwithheader" />
+        <source-file src="src/android/InAppBrowserDialog.java" target-dir="src/org/apache/cordova/inappbrowserwithheader" />
+        <source-file src="src/android/InAppChromeClient.java" target-dir="src/org/apache/cordova/inappbrowserwithheader" />
 
         <!--  drawable src/android/resources -->
         <resource-file src="src/android/res/drawable-hdpi/ic_action_next_item.png" target="res/drawable-hdpi/ic_action_next_item.png" />
